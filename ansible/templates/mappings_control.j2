@@ -1,0 +1,167 @@
+[
+  {
+		"schema": "deckhand/CertificateAuthority/v1",
+		"calico-etcd": [
+			"/etc/etcd/calico/tls/client-ca.pem"
+		],
+		"calico-etcd-peer": [
+			"/etc/etcd/calico/tls/peer-ca.pem"
+		],
+		"kubernetes": [
+			"/etc/kubernetes/admin/pki/cluster-ca.pem",
+			"/etc/kubernetes/pki/kubelet-client-ca.pem",
+			"/etc/kubernetes/pki/cluster-ca.pem",
+			"/etc/kubernetes/scheduler/cluster-ca.pem",
+			"/etc/kubernetes/apiserver/pki/kubelet-client-ca.pem",
+			"/etc/kubernetes/apiserver/pki/cluster-ca.pem",
+			"/etc/kubernetes/controller-manager/cluster-ca.pem"
+		],
+		"kubernetes-agg-api": [
+			"/etc/kubernetes/apiserver/agg-api-ca.pem"
+		],
+		"kubernetes-etcd": [
+			"/etc/kubernetes/apiserver/pki/etcd-client-ca.pem",
+			"/etc/etcd/kubernetes/tls/client-ca.pem"
+		],
+		"kubernetes-etcd-peer": [
+			"/etc/etcd/kubernetes/tls/peer-ca.pem"
+		],
+		"keystone-webhook": [],
+		"apiserver-webhook": []
+	},
+
+	{
+		"schema": "deckhand/CertificateAuthorityKey/v1",
+		"calico-etcd": [],
+		"calico-etcd-peer": [],
+		"kubernetes": [],
+		"kubernetes-etcd": [],
+		"kubernetes-etcd-peer": [],
+		"keystone-webhook": [],
+		"apiserver-webhook": []
+	},
+	{
+		"schema": "deckhand/Certificate/v1",
+{% for i in groups['all_control'] %}
+		"calico-etcd-master-{{loop.index0}}": [
+			"/etc/etcd/calico/tls/etcd-client.pem"
+		],
+{% endfor %}
+		"calico-etcd-anchor": [],
+		"calico-node": [],
+{% for i in groups['all_control'] %}
+		"calico-etcd-master-{{loop.index0}}-peer": ["/etc/etcd/calico/tls/etcd-peer.pem"],
+{% endfor %}
+		"apiserver": [
+			"/etc/kubernetes/apiserver/pki/apiserver.pem",
+			"/etc/kubernetes/apiserver/pki/kubelet-client.pem"
+		],
+		"apiserver-proxy": [
+			"/etc/kubernetes/apiserver/apiserver-proxy-cert.pem"
+		],
+		"kubelet-genesis": [
+			"/etc/kubernetes/pki/kubelet.pem"
+		],
+		"scheduler": [
+			"/etc/kubernetes/scheduler/scheduler.pem"
+		],
+		"controller-manager": [
+			"/etc/kubernetes/controller-manager/controller-manager.pem"
+		],
+		"admin": [
+			"/etc/kubernetes/admin/pki/admin.pem"
+		],
+		"armada": [],
+		"apiserver-webhook-kubelet": [],
+{% for i in groups['all_control'] %}
+		"kubernetes-etcd-master-{{loop.index0}}": [
+			"/etc/etcd/kubernetes/tls/etcd-client.pem"
+		],
+{% endfor %}
+		"apiserver-etcd": [
+			"/etc/kubernetes/apiserver/pki/etcd-client.pem"
+		],
+		"kubernetes-etcd-anchor": [],
+		"apiserver-webhook-etcd": [],
+{% for i in groups['control'] %}
+		"kubernetes-etcd-master-{{loop.index0}}-peer": [
+			"/etc/etcd/kubernetes/tls/etcd-peer.pem"
+		],
+{% endfor %}
+		"keystone-webhook-server": [],
+{% for i in groups['control'] %}
+		"kubelet-{{i}}": [
+			"/etc/kubernetes/pki/kubelet.pem"
+		],
+{% endfor %}
+		"apiserver-webhook-server": []
+	},
+	{
+		"schema": "deckhand/CertificateKey/v1",
+{% for i in groups['all_control'] %}
+		"calico-etcd-master-{{loop.index0}}": [
+			"/etc/etcd/calico/tls/etcd-client-key.pem"
+		],
+{% endfor %}
+		"calico-etcd-anchor": [],
+		"calico-node": [],
+{% for i in groups['all_control'] %}
+		"calico-etcd-master-{{loop.index0}}-peer": [
+			"/etc/etcd/calico/tls/etcd-peer-key.pem"
+		],
+{% endfor %}
+		"apiserver": [
+			"/etc/kubernetes/apiserver/pki/kubelet-client-key.pem",
+			"/etc/kubernetes/apiserver/pki/apiserver-key.pem"
+		],
+		"apiserver-proxy": [
+			"/etc/kubernetes/apiserver/apiserver-proxy-key.pem"
+		],
+		"kubelet-genesis": [
+			"/etc/kubernetes/pki/kubelet-key.pem"
+		],
+		"scheduler": [
+			"/etc/kubernetes/scheduler/scheduler-key.pem"
+		],
+		"controller-manager": [
+			"/etc/kubernetes/controller-manager/controller-manager-key.pem"
+		],
+		"admin": [
+			"/etc/kubernetes/admin/pki/admin-key.pem"
+		],
+		"apiserver-webhook-kubelet": [],
+{% for i in groups['all_control'] %}
+		"kubernetes-etcd-master-{{loop.index0}}": [
+			"/etc/etcd/kubernetes/tls/etcd-client-key.pem"
+		],
+{% endfor %}
+		"apiserver-etcd": [
+			"/etc/kubernetes/apiserver/pki/etcd-client-key.pem"
+		],
+		"kubernetes-etcd-anchor": [],
+		"apiserver-webhook-etcd": [],
+{% for i in groups['all_control'] %}
+		"kubernetes-etcd-master-{{loop.index0}}-peer": [
+			"/etc/etcd/kubernetes/tls/etcd-peer-key.pem"
+		],
+{% endfor %}
+		"keystone-webhook-server": [],
+{% for i in groups['control'] %}
+		"kubelet-{{i}}": [
+			"/etc/kubernetes/pki/kubelet-key.pem"
+		],
+{% endfor %}
+		"apiserver-webhook-server": []
+	},
+	{
+		"schema": "deckhand/PublicKey/v1",
+		"service-account": [
+			"/etc/kubernetes/apiserver/pki/service-account.pub"
+		]
+	},
+	{
+		"schema": "deckhand/PrivateKey/v1",
+		"service-account": [
+			"/etc/kubernetes/controller-manager/service-account.priv"]
+	}
+]

@@ -1,0 +1,23 @@
+[
+{% for i in groups['compute'] %}
+        {
+                "schema": "deckhand/Certificate/v1",
+                "kubelet-{{i}}": [
+                        "/etc/kubernetes/pki/kubelet.pem"
+                ]
+        },
+        {
+                "schema": "deckhand/CertificateKey/v1",
+                "kubelet-{{i}}": [
+                        "/etc/kubernetes/pki/kubelet-key.pem"
+                ]
+        },
+{% endfor %}
+        {
+                "schema": "deckhand/CertificateAuthority/v1",
+                "kubernetes": [
+                        "/etc/kubernetes/pki/kubelet-client-ca.pem",
+                        "/etc/kubernetes/pki/cluster-ca.pem"
+                ]
+        }
+]

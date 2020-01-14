@@ -1,0 +1,10 @@
+---
+- name: Remove the attributes on nodes
+  hosts: control
+  vars:
+    cert_root: /target/certs
+  gather_facts: no
+  tasks:
+    - name: Get the list of files to be copied
+      local_action: shell rm -rf "{{ cert_root }}/{{ inventory_hostname }}/etc/etcd"
+      when: "'cp_worker' in profile or 'cp_r640-secondary' in profile or 'cp_r740-secondary' in profile or 'dp_r720' in profile"

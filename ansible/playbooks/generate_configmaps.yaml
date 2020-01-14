@@ -1,0 +1,49 @@
+---
+- name: Generate the configmaps from new certs
+  hosts: localhost
+  become: yes
+  vars:
+    templates_dir: /workdir/ansible/templates
+    workdir: /target/cm_secrets/
+    certs_dir: /target/certificates
+    public_cert_components:
+#     This dict is in following format:
+#     namespace:
+#     - component_name
+      ucp:
+      - keystone
+      - shipyard
+      osh-infra:
+      - grafana
+      - kibana
+      - nagios
+      openstack:
+      - ceph
+      - cinder
+      - cloudformation
+      - glance
+      - heat
+      - horizon
+      - keystone
+      - neutron
+      - nova-novncproxy
+      - nova
+      - placement
+  gather_facts: no
+  tasks:
+  - name: Update ucp component
+    set_fact:
+      ucp_components: "{{ public_cert_components['ucp'] + ['drydock'] }}"
+
+  - name: Update dict
+    set_fact:
+      public_cert_components: "{{ public_cert_components | combine({ 'ucp': ucp_components }) }}"
+
+  - name: Render the mappings file
+    template:  src="{{ templates_dir }}/mappings.yaml.j2" dest="{{ workdir }}/mappings.yaml"
+
+  - name: Create configmaps and secrets
+    shell: chdir={{ workdir }} python3 /opt/bin/generate_cm_secrets.py "{{ certs_dir }}" mappings.yaml configmaps_secrets_yamls
+
+  - name: Patch the configmaps
+    shell: chdir={{ workdir }} echo "cd configmaps_secrets_yamls; ls | awk '{split(\$0, a, \"_\"); print a[1],a[2],a[3],\$0}' | xargs -n4 sh -c 'sudo -i kubectl --kubeconfig=/etc/kubernetes/admin/kubeconfig.yaml -n \${1} patch \${0} \${2} -p \"\$(cat \${3})\"'" > apply_cm_secret_script.sh

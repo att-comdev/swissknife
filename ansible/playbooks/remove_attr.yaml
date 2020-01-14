@@ -1,0 +1,86 @@
+---
+- name: Remove the attributes on nodes
+  hosts: all
+  vars:
+    cert_root: /target/certs
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Get the list of files to be copied
+      local_action: shell cd "{{ cert_root }}/{{ inventory_hostname }}"; find etc -name "*.pem"
+      register: pem_files
+
+    - name: Remove attribute of files
+      file:
+        path: "/{{ item }}"
+        attr: "-i"
+      ignore_errors: True
+      with_items:
+        - "{{ pem_files.stdout_lines }}"
+
+  handlers:
+    - name: restart kubelet
+      service: name=kubelet state=restarted
+
+
+- name: Remove the attributes on control and genesis nodes.
+  hosts: control:genesis
+  vars:
+    cert_root: /target/certs
+    common_certs_dir: control
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Get the list of files to be copied
+      local_action: shell cd "{{ cert_root }}/{{ common_certs_dir }}"; find etc -name "*.pem" | grep -v genesis
+      register: common_pem_files
+
+    - set_fact:
+        common_pem_files: "{{ common_pem_files}}"
+
+    - name: Get the list of files to be copied on genesis node
+      local_action: shell cd "{{ cert_root }}/{{ common_certs_dir }}"; find etc -name "*.pem" | grep genesis
+      when: "'genesis' in group_names"
+      register: genesis_pem_files
+
+    - set_fact:
+        genesis_pem_files: "{{ genesis_pem_files}}"
+
+    - name: Remove attribute of file
+      file:
+        path: "/{{ item }}"
+        attr: "-i"
+      ignore_errors: True
+      when: "'cp_worker' not in profile and 'cp_r640-secondary' not in profile and 'cp_r740-secondary' not in profile and 'dp_r720' not in profile"
+      with_items:
+        - "{{ common_pem_files.stdout_lines }}"
+
+    - name: Remove the attribute on genesis certificates
+      file:
+        path: "/{{ item }}"
+        attr: "-i"
+      ignore_errors: True
+      when: "'genesis' in group_names"
+      with_items:
+        - "{{ genesis_pem_files.stdout_lines }}"
+
+
+- name: Remove the attributes on compute nodes.
+  hosts: compute
+  vars:
+    cert_root: /target/certs
+    common_certs_dir: compute
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Get the list of files to be copied
+      local_action: shell cd "{{ cert_root }}/{{ common_certs_dir }}"; find etc -name "*.pem"
+      register: common_pem_files
+
+    - name: Remove attribute of file
+      file:
+        path: "/{{ item }}"
+        attr: "-i"
+      ignore_errors: True
+      with_items:
+        - "{{ common_pem_files.stdout_lines }}"

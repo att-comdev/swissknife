@@ -1,0 +1,215 @@
+---
+configmap:
+  kube-system:
+  - name: kubernetes-etcd-certs
+    keys:
+    - key_name: anchor-etcd-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: kubernetes-etcd-anchor
+    - key_name: client-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes-etcd
+{% for node in groups['genesis'] + groups['control'] %}
+    - key_name: {{ node }}-etcd-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: kubernetes-etcd-master-{{ loop.index0 }}
+    - key_name: {{ node }}-etcd-peer.pem
+      schema: deckhand/Certificate/v1
+      cert_name: kubernetes-etcd-master-{{ loop.index0 }}-peer
+{% endfor %}
+    - key_name: peer-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes-etcd-peer
+
+  - name: kubernetes-apiserver-certs
+    keys:
+    - key_name: apiserver.pem
+      schema: deckhand/Certificate/v1
+      cert_name: apiserver
+    - key_name: cluster-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes
+    - key_name: etcd-client-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes-etcd
+    - key_name: etcd-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: apiserver-etcd
+    - key_name: kubelet-client-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes
+    - key_name: kubelet-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: apiserver
+  - name: calico-etcd-certs
+    keys:
+    - key_name: anchor-etcd-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: calico-etcd-anchor
+    - key_name: client-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: calico-etcd
+{% for node in groups['genesis'] + groups['control'] %}
+    - key_name: {{ node }}-etcd-client.pem
+      schema: deckhand/Certificate/v1
+      cert_name: calico-etcd-master-{{ loop.index0 }}
+    - key_name: {{ node }}-etcd-peer.pem
+      schema: deckhand/Certificate/v1
+      cert_name: calico-etcd-master-{{ loop.index0 }}-peer
+{% endfor %}
+    - key_name: peer-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: calico-etcd-peer
+
+  - name: kubernetes-controller-manager-etc
+    keys:
+    - key_name: cluster-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes
+    - key_name: controller-manager.pem
+      schema: deckhand/Certificate/v1
+      cert_name: controller-manager
+
+  - name: kubernetes-scheduler-etc
+    keys:
+    - key_name: cluster-ca.pem
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes
+    - key_name: scheduler.pem
+      schema: deckhand/Certificate/v1
+      cert_name: scheduler
+
+secret:
+  kube-system:
+  - name: kubernetes-etcd-keys
+    keys:
+    - key_name: anchor-etcd-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: kubernetes-etcd-anchor
+{% for node in groups['genesis'] + groups['control'] %}
+    - key_name: {{ node }}-etcd-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: kubernetes-etcd-master-{{ loop.index0 }}
+    - key_name: {{ node }}-etcd-peer-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: kubernetes-etcd-master-{{ loop.index0 }}-peer
+{% endfor %}
+  - name: kubernetes-apiserver-keys
+    keys:
+    - key_name: apiserver-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: apiserver
+    - key_name: etcd-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: apiserver-etcd
+    - key_name: kubelet-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: apiserver
+  - name: kubernetes-controller-manager
+    keys:
+    - key_name: controller-manager-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: controller-manager
+  - name: kubernetes-scheduler
+    keys:
+    - key_name: scheduler-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: scheduler
+  - name: calico-etcd-keys
+    keys:
+    - key_name: anchor-etcd-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: calico-etcd-anchor
+{% for node in groups['genesis'] + groups['control'] %}
+    - key_name: {{ node }}-etcd-client-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: calico-etcd-master-{{ loop.index0 }}
+    - key_name: {{ node }}-etcd-peer-key.pem
+      schema: deckhand/CertificateKey/v1
+      cert_name: calico-etcd-master-{{ loop.index0 }}-peer
+{% endfor %}
+  - name: calico-etcd-secrets
+    keys:
+    - key_name: etcd-ca
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: calico-etcd
+    - key_name: etcd-cert
+      schema: deckhand/Certificate/v1
+      cert_name: calico-node
+    - key_name: etcd-key
+      schema: deckhand/CertificateKey/v1
+      cert_name: calico-node
+{% for namespace in public_cert_components %}
+  {{ namespace }}:
+{% for component in public_cert_components[namespace] %}
+  - name: {{ component }}-tls-public
+    keys:
+    - key_name: ca.crt
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: ingress-ca
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: ingress-key
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: ingress-crt
+{% endfor %}
+{% endfor %}
+  - name: apiserver-webhook-public
+    keys:
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: ingress-crt
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: ingress-key
+    - key_name: ca.crt
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: ingress-ca
+  - name: clcp-ucp-apiserver-webhook-apiserver-webhook-pod-server
+    keys:
+    - key_name: ca.crt
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: apiserver-webhook
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: apiserver-webhook-server
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: apiserver-webhook-server
+  - name: clcp-ucp-apiserver-webhook-keystone-webhook-server
+    keys:
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: keystone-webhook-server
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: keystone-webhook-server
+    - key_name: ca.crt
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: keystone-webhook
+  - name: clcp-ucp-apiserver-webhook-etcd-client
+    keys:
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: apiserver-webhook-etcd
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: apiserver-webhook-etcd
+  - name: clcp-ucp-apiserver-webhook-etcd-server
+    keys:
+    - key_name: ca.crt
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: kubernetes-etcd
+  utility:
+  - name: calico-etcd-secrets
+    keys:
+    - key_name: tls.ca
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: calico-etcd
+    - key_name: tls.crt
+      schema: deckhand/Certificate/v1
+      cert_name: calico-node
+    - key_name: tls.key
+      schema: deckhand/CertificateKey/v1
+      cert_name: calico-node
