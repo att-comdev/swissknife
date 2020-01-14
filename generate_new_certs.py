@@ -133,7 +133,7 @@ for map in mappings:
                     target_path = "%s/certs/%s%s" % (os.getcwd(), node_name,
                                                      path)
                     target_dir = os.path.dirname(target_path)
-                   os.makedirs(target_dir, exist_ok=True)
+                    os.makedirs(target_dir, exist_ok=True)
                     if os.path.exists(target_path):
                         append_write = 'a'
                     else:

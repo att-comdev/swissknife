@@ -24,7 +24,9 @@ recommended to run the below scripts from the genesis node.
 ## Export required variables
 
 ```
-export GIT_URL="opendev.org/airship"
+export GIT_GLOBAL_URL="opendev.org/airship"
+export GIT_SECRETS_URL=<URL for Secrets Repo>
+export GIT_SITE_URL=<URL for Site Repo>
 export SSH_USER=<SYSTEM USERNAME>
 export SITE_REPO="treasuremap"
 export GLOBAL_BRANCH="master"
