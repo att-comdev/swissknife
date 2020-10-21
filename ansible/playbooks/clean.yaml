@@ -1,0 +1,10 @@
+---
+- name: Clean up Swissknife directories
+  hosts: genesis
+  gather_facts: false
+  become: true
+  tasks:
+    - name: remove swissknife directory from genesis
+      file:
+        path: /root/swissknife
+        state: absent

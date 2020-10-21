@@ -2,43 +2,56 @@
 - name: Copy the node wise certificates to all nodes.
   hosts: all
   vars:
-    cert_root: /target/certs
-  gather_facts: no
-  become: yes
+    cert_root: ../../../certs
+  gather_facts: false
+  become: true
   tasks:
-    - pause:
-        prompt: "Check temporary files"
-        echo: "checked"
+    - name: Check etcd directory exists
+      stat:
+        path: /etc/etcd
+      register: etcd_dir
+
+    - name: Check kubernetes directory exists
+      stat:
+        path: /etc/kubernetes
+      register: kubernetes_dir
 
     - name: Backup /etc/kubernetes dir
       shell: "cp -rp /etc/kubernetes /etc/kubernetes.`date +%Y-%m-%d@%H:%M:%S~`"
       ignore_errors: true
+      when: kubernetes_dir.stat.exists
 
     - name: Backup /etc/etcd dir
       shell: "cp -rp /etc/etcd /etc/etcd.`date +%Y-%m-%d@%H:%M:%S~`"
       ignore_errors: true
-      when: inventory_hostname in groups['control']
+      when: etcd_dir.stat.exists
+
+    - name: Check kubernetes manifests directory exists
+      stat:
+        path: /etc/kubernetes/manifests
+      register: manifests_dir
 
     - name: Lock /etc/kubernetes/manifests dir
       shell: "chattr -R +i /etc/kubernetes/manifests"
       ignore_errors: true
+      when: manifests_dir.stat.exists
 
     - name: Get the list of files to be copied
+      become: false
       local_action: shell cd "{{ cert_root }}/{{ inventory_hostname }}"; find etc -name "*.pem"
       register: pem_files
       ignore_errors: true
+
+    - debug:
+        msg: "Check backups are complete and manifests directory is now locked"
     - pause:
-        prompt: "Enter a to continue"
-        echo: "{{ pem_files.stdout_lines }}"
+        minutes: 3
 
     - name: Create temporary certificate storage directories
       shell: mkdir -p "/tmp/$(dirname '{{ item }}')"
       with_items:
         - "{{ pem_files.stdout_lines }}"
       ignore_errors: true
-    - pause:
-        prompt: "Check temporary certs"
-        echo: "checked"
 
     - name: Copy the certificates to temporary location
       copy:
@@ -47,48 +60,43 @@
       with_items:
         - "{{ pem_files.stdout_lines }}"
       ignore_errors: true
+
+    - debug:
+        msg: "etc pem files now copied to temporary directory"
     - pause:
-        prompt: "Check temporary files"
-        echo: "checked"
-    - name: Copy the certificate to nodes
+        minutes: 2
+
+    - name: Lock and copy temporary certificates to nodes
       shell: chattr -i "/{{ item }}" && cp "/tmp/{{ item }}" "/{{ item }}" && chattr +i "/{{ item }}" && diff "/{{ item }}" "/tmp/{{ item }}"
       register: result
       until: result.rc == 0
       with_items:
         - "{{ pem_files.stdout_lines }}"
-      notify:
-        - restart kubelet
       ignore_errors: true
-
-  handlers:
-    - name: restart kubelet
-      service: name=kubelet state=restarted
 
 
 - name: Copy the common certificates to control and genesis nodes.
   hosts: control:genesis
   vars:
-    cert_root: /target/certs
+    cert_root: ../../../certs
     common_certs_dir: control
-  gather_facts: no
-  become: yes
+  gather_facts: false
+  become: true
   tasks:
     - name: Get the list of files to be copied
+      become: false
       local_action: shell cd "{{ cert_root }}/{{ common_certs_dir }}"; find etc -name "*.pem"
-      register: common_pem_files
+      register: common_pem_files_nc
       ignore_errors: true
 
     - set_fact:
-        common_pem_files: "{{ common_pem_files}}"
+        common_pem_files: "{{ common_pem_files_nc}}"
 
     - name: Create temporary certificate storage directories
       shell: mkdir -p "/tmp/$(dirname '{{ item }}')"
       with_items:
         - "{{ common_pem_files.stdout_lines }}"
       ignore_errors: true
-    - pause:
-        prompt: "Check common pem files"
-        echo: "{{ common_pem_files.stdout_lines }}"
 
     - name: Copy the certificates to temporary location
       copy:
@@ -99,24 +107,18 @@
         - "{{ common_pem_files.stdout_lines }}"
       ignore_errors: true
 
+    - debug:
+        msg: "Check temporary common pem files"
     - pause:
-        prompt: "Check temporary common pem files"
-        echo: "checked"
-    - pause:
-        prompt: "Check backups"
-        echo: "checked"
+        minutes: 3
+
     - name: Copy the common certificates for secondary control nodes
       shell: chattr -i "/{{ item }}" && cp "/tmp/{{ item }}" "/{{ item }}" && chattr +i "/{{ item }}" && diff "/{{ item }}" "/tmp/{{ item }}"
       register: result
       until: result.rc == 0
       when: "'etc/kubernetes' in item"
       with_items: "{{ common_pem_files.stdout_lines }}"
-      notify:
-        - restart kubelet
       ignore_errors: true
-    - pause:
-        prompt: "Copy secondary nodes"
-        echo: "checked"
 
     - name: Create temporary certificate storage directories
       shell: mkdir -p "/tmp/$(dirname '{{ item }}')"
@@ -128,33 +130,35 @@
       copy:
         src: "{{ cert_root }}/{{ common_certs_dir }}/{{ item }}"
         dest: "/tmp/{{ item }}"
-      when: "'cp_worker' not in profile and 'cp_r640-secondary' not in profile and 'cp_r740-secondary' not in profile and 'dp_r720' not in profile"
+      when: "'cd-cp-master-secondary' not in profile or 'cd-cp-worker-data' not in profile or 'cd-cp-worker-search' not in profile or 'ch-cp-master-secondary' not in profile or 'ch-cp-worker' not in profile or 'ch-cp-worker-data' not in profile or 'ch-cp-worker-search' not in profile or 'cloudharbor-cp-secondary' not in profile or 'cp_r640-secondary' not in profile or 'cp_r740-secondary' not in profile or 'cp_rack10hp_worker' not in profile or 'cp_rack11_worker' not in profile or 'cp_worker' not in profile or 'cp-rack07-worker' not in profile or 'cp-rack07-worker-r630' not in profile or 'cp-rack09-worker' not in profile or 'cp-rack10-worker' not in profile or 'cp-rack11-worker' not in profile or 'cp-worker-dell' not in profile or 'nc-cp-secondary' not in profile or 'nc-cp-secondary-730-adv' not in profile or 'nc-cp-secondary-adv' not in profile"
       with_items:
         - "{{ common_pem_files.stdout_lines }}"
       ignore_errors: true
 
+    - debug:
+        msg: "Certificates are now copied into temporary directories for secondary nodes"
     - pause:
-        prompt: "Check backups"
-        echo: "checked"
-    - name: Copy the common certificates
+        minutes: 3
+
+    - name: Unlock Copy and Lock certificates for secondary control nodes
       shell: chattr -i "/{{ item }}" && cp "/tmp/{{ item }}" "/{{ item }}" && chattr +i "/{{ item }}" && diff "/{{ item }}" "/tmp/{{ item }}"
       register: result
       until: result.rc == 0
-      when: "'cp_worker' not in profile and 'cp_r640-secondary' not in profile and 'cp_r740-secondary' not in profile and 'dp_r720' not in profile"
+      when: "'cd-cp-master-secondary' not in profile or 'cd-cp-worker-data' not in profile or 'cd-cp-worker-search' not in profile or 'ch-cp-master-secondary' not in profile or 'ch-cp-worker' not in profile or 'ch-cp-worker-data' not in profile or 'ch-cp-worker-search' not in profile or 'cloudharbor-cp-secondary' not in profile or 'cp_r640-secondary' not in profile or 'cp_r740-secondary' not in profile or 'cp_rack10hp_worker' not in profile or 'cp_rack11_worker' not in profile or 'cp_worker' not in profile or 'cp-rack07-worker' not in profile or 'cp-rack07-worker-r630' not in profile or 'cp-rack09-worker' not in profile or 'cp-rack10-worker' not in profile or 'cp-rack11-worker' not in profile or 'cp-worker-dell' not in profile or 'nc-cp-secondary' not in profile or 'nc-cp-secondary-730-adv' not in profile or 'nc-cp-secondary-adv' not in profile"
       with_items: "{{ common_pem_files.stdout_lines }}"
-      notify:
-        - restart kubelet
       ignore_errors: true
+
+    - debug:
+        msg: "Verify files are now immutable"
     - pause:
-        prompt: "Check immutable for common"
-        echo: "checked"
+        minutes: 3
     - name: Find list of etcd containers
       shell: docker ps | awk '{print $NF}' | grep -i etcd
       register: etcd_containers
       ignore_errors: true
 
     - name: Find list of kubernetes related pods
-      shell: docker ps | awk '{print $NF}'| grep -i kubernetes | grep -v etcd 
+      shell: docker ps | awk '{print $NF}'| grep -i kubernetes | grep -v etcd
       register: kubernetes_containers
       ignore_errors: true
 
@@ -163,34 +167,29 @@
       with_items:
         - "{{ kubernetes_containers.stdout_lines }}"
         - "{{ etcd_containers.stdout_lines }}"
-      notify:
-        - restart kubelet
       ignore_errors: true
-
-  handlers:
-    - name: restart kubelet
-      service: name=kubelet state=restarted
 
 - name: Copy the common certificates to compute nodes.
   hosts: compute
   vars:
-    cert_root: /target/certs
+    cert_root: ../../../certs
     common_certs_dir: compute
-  gather_facts: no
-  become: yes
+  gather_facts: false
+  become: true
   tasks:
-    - name: Get the list of files to be copied
+    - name: Get the list of files to be copied for compute nodes
+      become: false
       local_action: shell cd "{{ cert_root }}/{{ common_certs_dir }}"; find etc -name "*.pem"
       register: common_pem_files
       ignore_errors: true
 
-    - name: Create temporary certificate storage directories
+    - name: Create temporary certificate storage directories for compute nodes
       shell: mkdir -p "/tmp/$(dirname '{{ item }}')"
       with_items:
         - "{{ common_pem_files.stdout_lines }}"
       ignore_errors: true
 
-    - name: Copy the certificates to temporary location
+    - name: Copy the certificates to temporary location for compute nodes
       copy:
         src: "{{ cert_root }}/{{ common_certs_dir }}/{{ item }}"
         dest: "/tmp/{{ item }}"
@@ -198,16 +197,31 @@
         - "{{ common_pem_files.stdout_lines }}"
       ignore_errors: true
 
-    - name: Copy the common certificates
+    - name: Unlock Copy and Lock the common certificates for compute nodes
       shell: chattr -i "/{{ item }}" && cp "/tmp/{{ item }}" "/{{ item }}" && chattr +i "/{{ item }}" && diff "/{{ item }}" "/tmp/{{ item }}"
       register: result
       until: result.rc == 0
       with_items:
         - "{{ common_pem_files.stdout_lines }}"
-      notify:
-        - restart kubelet
       ignore_errors: true
 
-  handlers:
+- name: Update apiserver-both
+  hosts: genesis:control
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Update apiserver-both
+      shell: rm /etc/kubernetes/apiserver/pki/apiserver-both.pem
+      ignore_errors: true
+
+- name: Restart kubelet
+  hosts: genesis:control:compute
+  gather_facts: false
+  become: true
+  tasks:
+    - debug:
+        msg: "Pause prior to starting Kubelet"
+    - pause:
+        minutes: 3
     - name: restart kubelet
       service: name=kubelet state=restarted

@@ -1,49 +1,64 @@
 ---
-- name: Generate the configmaps from new certs
+- name: Render configmap secrets
   hosts: localhost
-  become: yes
   vars:
-    templates_dir: /workdir/ansible/templates
-    workdir: /target/cm_secrets/
-    certs_dir: /target/certificates
+    templates_dir: ../templates
+    workdir: ../../../cm_secrets/
     public_cert_components:
 #     This dict is in following format:
 #     namespace:
 #     - component_name
       ucp:
-      - keystone
-      - shipyard
+        - keystone
+        - shipyard
       osh-infra:
-      - grafana
-      - kibana
-      - nagios
+        - grafana
+        - kibana
+        - nagios
       openstack:
-      - ceph
-      - cinder
-      - cloudformation
-      - glance
-      - heat
-      - horizon
-      - keystone
-      - neutron
-      - nova-novncproxy
-      - nova
-      - placement
-  gather_facts: no
+        - ceph
+        - cinder
+        - cloudformation
+        - glance
+        - heat
+        - horizon
+        - keystone
+        - neutron
+        - nova-novncproxy
+        - nova
+        - placement
+  gather_facts: false
   tasks:
-  - name: Update ucp component
-    set_fact:
-      ucp_components: "{{ public_cert_components['ucp'] + ['drydock'] }}"
+    - name: Update ucp component
+      set_fact:
+        ucp_components: "{{ public_cert_components['ucp'] + ['drydock'] }}"
 
-  - name: Update dict
-    set_fact:
-      public_cert_components: "{{ public_cert_components | combine({ 'ucp': ucp_components }) }}"
+    - name: create cm_secrets directory
+      file:
+        path: ../../../cm_secrets/
+        state: directory
 
-  - name: Render the mappings file
-    template:  src="{{ templates_dir }}/mappings.yaml.j2" dest="{{ workdir }}/mappings.yaml"
+    - name: Update dict
+      set_fact:
+        public_cert_components: "{{ public_cert_components | combine({ 'ucp': ucp_components }) }}"
 
-  - name: Create configmaps and secrets
-    shell: chdir={{ workdir }} python3 /opt/bin/generate_cm_secrets.py "{{ certs_dir }}" mappings.yaml configmaps_secrets_yamls
+    - name: Render the mappings file
+      template: src="{{ templates_dir }}/nc_mappings.yaml.j2" dest="{{ workdir }}/nc_mappings.yaml"
 
-  - name: Patch the configmaps
-    shell: chdir={{ workdir }} echo "cd configmaps_secrets_yamls; ls | awk '{split(\$0, a, \"_\"); print a[1],a[2],a[3],\$0}' | xargs -n4 sh -c 'sudo -i kubectl --kubeconfig=/etc/kubernetes/admin/kubeconfig.yaml -n \${1} patch \${0} \${2} -p \"\$(cat \${3})\"'" > apply_cm_secret_script.sh
+    - name: Create configmaps and secrets
+      shell: chdir={{ workdir }} python3 ../nc-swissknife/scripts/generate_cm_secrets.py nc_mappings.yaml configmaps_secrets_yamls
+      ignore_errors: true
+
+- name: Generate the configmaps from new certs
+  hosts: genesis
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Copy the configmap secrets to genesis host
+      copy:
+        src: ../../../cm_secrets
+        dest: /root/swissknife/
+
+    - name: Patch the configmaps
+      shell: chdir=/root/swissknife/cm_secrets/ echo "set +e; cd configmaps_secrets_yamls; ls | awk '{split(\$0, a, \"_\"); print a[1],a[2],a[3],\$0}' | xargs -n4 sh -c 'kubectl --kubeconfig=/etc/kubernetes/admin/kubeconfig.yaml -n \${1} patch \${0} \${2} -p \"\$(cat \${3})\"'" > /root/swissknife/cm_secrets/apply_cm_secret_script.sh
+      ignore_errors: true

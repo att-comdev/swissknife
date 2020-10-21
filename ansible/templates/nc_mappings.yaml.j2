@@ -201,6 +201,28 @@ secret:
     - key_name: ca.crt
       schema: deckhand/CertificateAuthority/v1
       cert_name: kubernetes-etcd
+  - name: postgresql-replication-pki
+    keys:
+    - key_name: ca
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: patroni-replication
+    - key_name: caKey
+      schema: deckhand/CertificateAuthorityKey/v1
+      cert_name: patroni-replication
+    - key_name: crt
+      schema: deckhand/Certificate/v1
+      cert_name: patroni-replication
+    - key_name: key
+      schema: deckhand/CertificateKey/v1
+      cert_name: patroni-replication
+  - name: postgresql-server-pki
+    keys:
+    - key_name: ca
+      schema: deckhand/CertificateAuthority/v1
+      cert_name: patroni-replication
+    - key_name: caKey
+      schema: deckhand/CertificateAuthorityKey/v1
+      cert_name: patroni-replication
   utility:
   - name: calico-etcd-secrets
     keys:

@@ -1,28 +1,16 @@
-IMAGE_NAME      := swissknife
-IMAGE_PREFIX               ?= att-comdev 
-IMAGE_TAG                  ?= untagged
-LABEL                      ?= commit-id
+.DEFAULT_GOAL              := help
+PROJ_DIR                   := $(shell pwd)
 
-DOCKER_REGISTRY            ?= quay.io
-PUSH_IMAGE                 ?= false
+.PHONY: help
+help:
+	@echo "Here are the make targets for $(shell basename ${PROJ_DIR})."
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-PROXY                      ?= http://proxy.foo.com:8000
-NO_PROXY                   ?= localhost,127.0.0.1,.svc.cluster.local
-USE_PROXY                  ?= false
+.PHONY: code-review
+code-review: install-dependencies ## The standard CI interface for code review. Which includes linting, testing, and documents
+	tox
 
-IMAGE:=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$(IMAGE_NAME):${IMAGE_TAG}
-IMAGE_DIR:=$(IMAGE_PREFIX)-$(IMAGE_NAME)
-
-.PHONY: images
-
-#Build all images in the list
-images: $(IMAGE_NAME)
-
-$(IMAGE_NAME):
-	@echo
-	@echo "===== Processing [$@] image ====="
-	@make build_$@ IMAGE=${DOCKER_REGISTRY}/${IMAGE_PREFIX}/$@:${IMAGE_TAG} IMAGE_DIR=${IMAGE_PREFIX}-$@
-
-.PHONY: build_swissknife
-build_swissknife:
-	docker build --network host -t $(IMAGE) --label $(LABEL) -f nc-swissknife/Dockerfile .
+.PHONY: install-dependencies
+install-dependencies: ## Install none pip based software requirements for the project. (Requires to run as root to do any new installs)
+	${PROJ_DIR}/install-apt-packages.sh ${PROJ_DIR}/apt-dependencies.txt
+	pip3 install tox

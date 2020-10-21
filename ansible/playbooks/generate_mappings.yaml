@@ -1,10 +1,16 @@
 ---
 - name: Render mappings
   hosts: localhost
-  gather_facts: no
+  vars:
+  gather_facts: false
   tasks:
-   - name: render compute mappings
-     template: src=/workdir/ansible/templates/mappings_compute.j2 dest=/target/mappings/rendered_mappings_compute.json
+    - name: create mappings directory
+      file:
+        path: ../../../mappings
+        state: directory
 
-   - name: render control mappings
-     template: src=/workdir/ansible/templates/mappings_control.j2 dest=/target/mappings/rendered_mappings_control.json
+    - name: render compute mappings
+      template: src=../templates/nc_mappings_compute.j2 dest=../../../mappings/rendered_mappings_compute.json
+
+    - name: render control mappings
+      template: src=../templates/nc_mappings_control.j2 dest=../../../mappings/rendered_mappings_control.json

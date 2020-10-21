@@ -1,0 +1,8 @@
+---
+- name: run unlock files
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: unlock files for each host in region
+      shell: set -o globstar && chattr -iR /etc/kubernetes/**/*.pem /etc/kubernetes/**/*.yaml /etc/kubernetes/manifests /etc/etcd/**/**/*.pem || true

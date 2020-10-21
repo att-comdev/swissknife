@@ -2,9 +2,9 @@
 - name: Remove the attributes on nodes
   hosts: control
   vars:
-    cert_root: /target/certs
-  gather_facts: no
+    cert_root: ../../../certs
+  gather_facts: false
   tasks:
     - name: Get the list of files to be copied
       local_action: shell rm -rf "{{ cert_root }}/{{ inventory_hostname }}/etc/etcd"
-      when: "'cp_worker' in profile or 'cp_r640-secondary' in profile or 'cp_r740-secondary' in profile or 'dp_r720' in profile"
+      when: "'cd-cp-master-secondary' in profile or 'cd-cp-worker-data' in profile or 'cd-cp-worker-search' in profile or 'ch-cp-master-secondary' in profile or 'ch-cp-worker' in profile or 'ch-cp-worker-data' in profile or 'ch-cp-worker-search' in profile or 'cloudharbor-cp-secondary' in profile or 'cp_r640-secondary' in profile or 'cp_r740-secondary' in profile or 'cp_rack10hp_worker' in profile or 'cp_rack11_worker' in profile or 'cp_worker' in profile or 'cp-rack07-worker' in profile or 'cp-rack07-worker-r630' in profile or 'cp-rack09-worker' in profile or 'cp-rack10-worker' in profile or 'cp-rack11-worker' in profile or 'cp-worker-dell' in profile or 'nc-cp-secondary' in profile or 'nc-cp-secondary-730-adv' in profile or 'nc-cp-secondary-adv' in profile"

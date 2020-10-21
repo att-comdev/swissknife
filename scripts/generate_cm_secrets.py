@@ -1,9 +1,9 @@
 import argparse
 import base64
 import glob
-import os
 import json
 import logging
+import os
 
 import yaml
 
@@ -22,7 +22,7 @@ def get_certificates_from_manifests(fpath):
     with open(fpath, "r") as rf:
         manifests = yaml.safe_load_all(rf.read())
         certs = {(cert.get('schema'), cert.get('metadata').get('name')):
-                     cert.get('data')
+                 cert.get('data')
                  for cert in manifests}
         logging.info("Successfully loaded certs from:{0}".format(fpath))
         return certs
@@ -42,21 +42,20 @@ def generate_cm_secrets_from_mapping(mappingfile, output_dir):
                         data = certs.get(
                             (keys.get("schema"), keys.get("cert_name")))
                         if not data:
-                            raise Exception(
+                            logging.info(
                                 "Certificate not found for schema: {0}, "
-                                "cert_name: {1}".format
-                                (keys.get("schema"), keys.get("cert_name")))
+                                "cert_name: {1}".format(
+                                    keys.get("schema"), keys.get("cert_name")))
+                            continue
                         if dest_type == 'configmap':
                             template['data'][keys.get('key_name')] = data
                         elif dest_type == 'secret':
                             template['data'][keys.get(
                                 'key_name')] = base64.b64encode(
-                                data.encode('utf-8')).decode('utf-8')
+                                    data.encode('utf-8')).decode('utf-8')
 
-                    output_file = "{}_{}_{}_patch.json".format(dest_type,
-                                                               namespace,
-                                                               cm_or_secret[
-                                                                   'name'])
+                    output_file = "{}_{}_{}_patch.json".format(
+                        dest_type, namespace, cm_or_secret['name'])
                     dest_file = "{}/{}".format(output_dir, output_file)
 
                     with open(dest_file, "a") as wf:
@@ -67,9 +66,6 @@ def generate_cm_secrets_from_mapping(mappingfile, output_dir):
 if __name__ == '__main__':
     certs = {}
     parser = argparse.ArgumentParser()
-    parser.add_argument("cert_dir",
-                        type=str,
-                        help='directory path which contains all certs')
     parser.add_argument("mapping_yaml",
                         type=str,
                         help='Enter Mapping yaml path')
@@ -77,7 +73,8 @@ if __name__ == '__main__':
                         type=str,
                         help='Enter the folder for output yaml to store')
     args = parser.parse_args()
-    cert_dir = args.cert_dir
+    dir_name = os.path.dirname(__file__)
+    cert_dir = os.path.join(dir_name, '../../certificates')
     mapping_yaml = args.mapping_yaml
     output_dir = args.output_dir
 
